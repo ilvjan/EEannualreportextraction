@@ -1,44 +1,28 @@
 var pdfreader = require('pdfreader');
-const {Rule} = require("pdfreader");
 let raamatupidamine = [];
 let bilanss = [];
 let dates = [];
 let tabel;
 let page;
 
-const nbCols = 3;
-const cellPadding = 48; // each cell is padded to fit 40 characters
-const columnQuantitizer = (item) => parseFloat(item.x) >= 18;
 
-const padColumns = (array, nb) =>
-    Array.apply(null, {length: nb}).map((val, i) => array[i] || []);
-// .. because map() skips undefined elements
-
-const mergeCells = (cells) => (cells || [])
-    .map((cell) => cell.text).join('') // merge cells
-    .substr(0, cellPadding).padEnd(cellPadding, ' '); // padding
-
-const renderMatrix = (matrix) => (matrix || [])
-    .map((row, y) => padColumns(row, nbCols)
-        .map(mergeCells)
-        .join(' | ')
-    ).join('\n');
-
-var table = new pdfreader.TableParser();
+function getdate(itemx) {
+    if (parseFloat(itemx) > 22 && parseFloat(itemx) < 26) return 1;
+    if (parseFloat(itemx) > 18 && parseFloat(itemx) < 22) return 0;
+}
 
 
-new pdfreader.PdfReader().parseFileItems("uploads/Aruanne_14058782.pdf", function (err, item) {
+new pdfreader.PdfReader().parseFileItems("uploads/Montonio_Finance_OU-aruanne_2023.pdf", function (err, item) {
     if (!item || item.page) {
         // end of file, or page
-        console.log(renderMatrix(table.getMatrix()));
         console.log('PAGE:', item.page);
-        table = new pdfreader.TableParser(); // new/clear table for next page
+       // table = new pdfreader.TableParser(); // new/clear table for next page
         page = item.page;
     }
-    if (page == 4) {
+    if (page == 5) {
 
         if (item.text && item.text !== " ") {
-            if (item.text == "Bilanss") {
+            if (item.text.includes("bilanss")) {
                 tabel = 1;
                 const item_text = item.text;
                 let objekt = {
@@ -54,30 +38,26 @@ new pdfreader.PdfReader().parseFileItems("uploads/Aruanne_14058782.pdf", functio
                     }
 
                 } else if (dates.length == 2) {
-                    if (parseFloat(item.x) < 18) {
-                        const item_text = item.text;
-                        bilanss.push(item.text);
-                    } else if (parseFloat(item.x) > 22 && parseFloat(item.x) < 26) {
-                        let key = bilanss[bilanss.length - 1]
-                        let date = dates[1];
-                        const item_text = item.text;
+                    if (parseFloat(item.x) < 18 ) {
+                        let obj = {[item.text] : {}};
+                        bilanss.push(obj);
+                    } else if (parseFloat(item.x) > 18 && parseFloat(item.x) < 26 ) {
+                        let key = Object.values(bilanss[bilanss.length - 1])[0];
+                        let date = dates[getdate(item.x)];
+                        let item_text = item.text;
+                        console.log(Object.keys(key));
+                        if (key.hasOwnProperty(date)) {
+                            let obj = Object.values(key)[getdate(item.x)];
+                            item_text = obj + item_text;
+                        }
+                        key[date] = item_text;
 
-                    } else if (parseFloat(item.x) > 18 && parseFloat(item.x) < 22) {
-                        let key = bilanss[bilanss.length - 1]
-                        let date = dates[0];
-                        const item_text = item.text;
-                        let objekt = {
-                            [key]: {
-                                [date]: item_text
-                            }
-                        };
-                        bilanss[bilanss.length - 1] = objekt;
                     }
                     console.log("Raamatupidamine " + raamatupidamine);
                     console.log("Dates " + dates);
                     console.log("Tabel " + tabel);
                     console.log("Page " + page);
-                    console.log("Bilanss " + bilanss);
+                    console.log(JSON.stringify(bilanss));
 
                 }
             }
