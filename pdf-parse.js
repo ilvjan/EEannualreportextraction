@@ -2,45 +2,43 @@ const fs = require('fs');
 const pdf = require('pdf-parse');
 
 let pdfDataExtracted = [];
-let page = 0;
+const dataFolder = "./uploads";
 
 
 function getDateIndex
-(xposition) {
+    (xposition) {
     if (parseFloat(xposition) > 364 && parseFloat(xposition) < 426) return 1;
     if (parseFloat(xposition) > 300 && parseFloat(xposition) < 364) return 0;
 }
 
-function parseItem(items) {
+function parsePage(items) {
     let reportname;
-    let dates = [];
+    let date;
     let aruanne = [];
     let isTabel = Boolean;
+    const companyname = items[1].str;
     for (let item of items) {
-
         if (item.str && item.str !== " ") {
-            if ((item.str === "Bilanss" || item.str === "Kasumiaruanne") && parseInt(item.height) == 14) {
+         if ((item.str === "Bilanss" || item.str === "Kasumiaruanne") && parseInt(item.height) == 14) {
                 isTabel = true;
                 reportname = item.str;
             }
             if (isTabel == 1) {
-                if (dates.length !== 2) {
-                    if (parseFloat(item.transform[4]) > 300 && parseFloat(item.transform[4]) < 426) {
-                        dates.push(item.str);
+                if (!date) {
+                    if (parseFloat(item.transform[4]) > 300 && parseFloat(item.transform[4]) < 364) {
+                        date = item.str;
                     }
                 }
-                else if (dates.length == 2) {
+                else if (date) {
                     if (parseFloat(item.transform[4]) < 300) {
-                        let obj = { [item.str]: {} };
+                        let obj = { [item.str]: ""};
                         aruanne.push(obj);
                     }
-                    else if (parseFloat(item.transform[4]) > 300 && parseFloat(item.transform[4]) < 426) {
-                        let key = Object.values(aruanne[aruanne.length - 1])[0];
-                        let date = dates[getDateIndex
-                            (item.transform[4])];
-                        let item_str = item.str;
+                    else if (parseFloat(item.transform[4]) > 300 && parseFloat(item.transform[4]) < 364) {
+                        let key = Object.keys(aruanne[aruanne.length - 1])[0];
+                        let item_str = item.str;    
                         //console.log(Object.keys(key));
-                        key[date] = item_str;
+                        aruanne[aruanne.length - 1][key] = item_str;
 
                     }
                 }
@@ -50,16 +48,21 @@ function parseItem(items) {
         }
 
     }
-    dates.length = 0;
+
+
+    
     isTabel = false;
     return report = {
+        companyname : companyname,
+        date : date,
         [reportname]: aruanne
     };
+
 }
 
 
 
-function render_page(pageData) {
+async function render_page(pageData) {
 
     //check documents https://mozilla.github.io/pdf.js/
     let render_options = {
@@ -67,45 +70,55 @@ function render_page(pageData) {
         normalizeWhitespace: false,
         //do not attempt to combine same line TextItem's. The default value is `false`.
         disableCombineTextItems: true
+
+
     }
 
-    return pageData.getTextContent(render_options)
-        .then(function (textContent) {
-            page += 1;
-            if (page == 4 || page == 5) {
-                pdfDataExtracted
-            .push(parseItem(textContent.items));
-                console.log(JSON.stringify(pdfDataExtracted
-                , null, 2));
-            }
-        })
+    let textContent = await pageData.getTextContent(render_options);
+    return parsePage(textContent.items);
 
 }
 
 
 
 let options = {
-    pagerender: render_page
+    pagerender: async function (pageData) {
+        const page = (pageData.pageIndex) + 1;
+        if (page == 4 || page == 5) {
+            let pageRendered = await render_page(pageData);
+            console.log(JSON.stringify(pageRendered
+                , null, 2));
+        }
+
+    }
+
 }
 
-let dataBuffer = fs.readFileSync('uploads/Aruanne_14058782.pdf');
 
 
-pdf(dataBuffer, options).then(function (data) {
-    
 
-    // // number of pages
-    // console.log(data.numpages);
-    // // number of rendered pages
-    //console.log(data.numrender);
-    // // PDF info
-    // console.log(data.info);
-    // // PDF metadata
-    // console.log(data.metadata);
-    // // PDF.js version
-    // // check https://mozilla.github.io/pdf.js/getting_started/
-    // console.log(data.version);
-    // PDF text
-    // console.log(data.text);
+fs.readdirSync(dataFolder).forEach(file => {
+    let dataBuffer = fs.readFileSync(dataFolder + "/" + file)
+    pdf(dataBuffer, options).then(function (data) {
 
-});
+
+        // // number of pages
+        // console.log(data.numpages);
+        // // number of rendered pages
+        //console.log(data.numrender);
+        // // PDF info
+        // console.log(data.info);
+        // // PDF metadata
+        // console.log(data.metadata);
+        // // PDF.js version
+        // // check https://mozilla.github.io/pdf.js/getting_started/
+        // console.log(data.version);
+        // PDF text
+        // console.log(data.text);
+
+    });
+
+}
+);
+
+
