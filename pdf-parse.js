@@ -1,9 +1,11 @@
 const fs = require('fs');
 const pdf = require('pdf-parse');
 const eng = require('./eng.json');
+const translate = require('./translation_module.js')
 
 
 const dataFolder = "./uploads";
+
 
 
 
@@ -28,7 +30,16 @@ function parsePage(items) {
                 }
                 else if (date) {
                     if (parseFloat(item.transform[4]) < 300) {
+                        if(eng[item.str]){
                         objectKey = eng[item.str];
+                        }
+                        else{
+                            translate.AI(item.str).then((result) => {
+                                objectKey = result;
+                                translate.save(item.str, result);
+
+                              });
+                        }
                     }
                     else if (parseFloat(item.transform[4]) > 300 && parseFloat(item.transform[4]) < 364) {
                         aruanne.push({
