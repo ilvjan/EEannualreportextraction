@@ -1,15 +1,11 @@
 const fs = require('fs');
 const pdf = require('pdf-parse');
-const eng = require('./eng.json');
-const translate = require('./translation_module.js')
 
-
-const dataFolder = "./uploads";
-
-
-
+    
 
 function parsePage(items) {
+    const eng = require('./eng.json');
+    const translate = require('./translation_module.js')
     let objectKey;
     let reportname;
     let date;
@@ -63,8 +59,8 @@ function parsePage(items) {
         //return 
     }
     return report = {
-        companyname: companyname,
-        date: date,
+        "Company name": companyname,
+        Date: date,
         [reportname]: aruanne
     };
 
@@ -96,9 +92,10 @@ async function render_page(pageData, file, page) {
 }
 
 
-function parsePDF(dataBuffer, file) {
+async function parsePDF(dataBuffer, file) {
 
     const pdfDataExtracted = [];
+    
 
     const options = {
         pagerender: async function (pageData) {
@@ -113,11 +110,10 @@ function parsePDF(dataBuffer, file) {
 
     }
 
-
-
-        pdf(dataBuffer, options).then(function (data) {
-            console.log(JSON.stringify(pdfDataExtracted
-                , null, 2));
+    await pdf(dataBuffer, options)
+        console.log("Pdf funktsiooni sees")
+            //console.log(JSON.stringify(pdfDataExtracted, null, 2));
+                return pdfDataExtracted;
 
 
             // console.log(JSON.stringify(pdfDataExtracted
@@ -138,7 +134,6 @@ function parsePDF(dataBuffer, file) {
             // PDF text
             // console.log(data.text);
 
-        })
 
 
     
@@ -147,12 +142,27 @@ function parsePDF(dataBuffer, file) {
 
 
 
-
+/* local folder with pdf files
+const dataFolder = "./uploads";
 fs.readdirSync(dataFolder).forEach(file => {
     let dataBuffer = fs.readFileSync(dataFolder + "/" + file)
     parsePDF(dataBuffer, file);
 }
 
-);
+); */
+
+module.exports = async function (filepath, filename) {
+try{
+const dataBuffer = fs.readFileSync(filepath)
+const result = await parsePDF(dataBuffer, filename);
+console.log("See on", result)
+return result;
+}
+catch (err) {
+    console.error(err.message);
+    return err.message;
+
+}
+}
 
 

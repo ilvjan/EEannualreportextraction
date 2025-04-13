@@ -34,7 +34,6 @@ function saveTranslation(term,eng_term){
   const fs = require('fs');
   const data = fs.readFileSync('eng.json');
   let jsonData = JSON.parse(data);
-  console.log(jsonData);
   jsonData[term] = eng_term;
   fs.writeFileSync('eng.json', JSON.stringify(jsonData));
 
